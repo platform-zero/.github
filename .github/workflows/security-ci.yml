@@ -16,10 +16,25 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
-      - name: Scan for secrets
-        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+      - name: Install verified Gitleaks CLI
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_VERSION: 8.30.1
+        run: |
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          curl -fsSLO "$base/$archive"
+          curl -fsSLO "$base/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          grep "  $archive$" "gitleaks_${GITLEAKS_VERSION}_checksums.txt" | sha256sum -c -
+          tar -xzf "$archive" gitleaks
+          install -m 0755 gitleaks "$RUNNER_TEMP/gitleaks"
+      - name: Scan current pull-request changes for secrets
+        if: github.event_name == 'pull_request'
+        run: |
+          "$RUNNER_TEMP/gitleaks" git --redact --log-opts="${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+      - name: Scan pushed commit for secrets
+        if: github.event_name != 'pull_request'
+        run: |
+          "$RUNNER_TEMP/gitleaks" git --redact --log-opts="-1 ${{ github.sha }}"
 
   dependencies:
     name: Dependency review
