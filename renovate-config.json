@@ -1,0 +1,39 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "dependencyDashboard": true,
+  "labels": ["dependencies"],
+  "minimumReleaseAge": "3 days",
+  "prConcurrentLimit": 5,
+  "rangeStrategy": "pin",
+  "schedule": ["before 5am on monday"],
+  "packageRules": [
+    {
+      "description": "Automerge immutable GitHub Action digest refreshes",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["digest"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Automerge container digest refreshes after required checks",
+      "matchDatasources": ["docker"],
+      "matchUpdateTypes": ["digest"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "description": "Require review for version changes",
+      "matchUpdateTypes": ["major", "minor", "patch"],
+      "automerge": false
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)stack\\.runtime\\.yaml$/"],
+      "matchStrings": ["image:\\s*[\"']?(?<depName>[^\"'@:\\s]+(?:/[^\"'@:\\s]+)*):(?<currentValue>[^\"'@\\s]+)(?:@(?<currentDigest>sha256:[a-f0-9]{64}))?[\"']?"],
+      "datasourceTemplate": "docker"
+    }
+  ]
+}
